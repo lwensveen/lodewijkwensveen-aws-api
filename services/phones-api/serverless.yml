@@ -1,0 +1,135 @@
+service: phones-app-ext-phones-api
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  resourcesStages:
+    prod: prod
+    dev: dev
+  resourcesStage: ${self:custom.resourcesStages.${self:custom.stage}, self:custom.resourcesStages.dev}
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+
+plugins:
+  - serverless-webpack
+
+package:
+  individually: true
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: eu-west-1
+  tracing:
+    apiGateway: true
+    lambda: true
+  apiGateway:
+    minimumCompressionSize: 1024 # Enable gzip compression for responses > 1 KB
+
+  # These environment variables are made available to our functions
+  # under process.env.
+  environment:
+    stage: ${self:custom.stage}
+    resourcesStage: ${self:custom.resourcesStage}
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+    tableName: ${self:custom.resourcesStage}-phones
+
+  iamRoleStatements:
+    - ${file(../../serverless.common.yml):lambdaPolicyXRay}
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      # Restrict our IAM role permissions to
+      # the specific table for the stage
+      Resource:
+        - 'Fn::ImportValue': ${self:custom.resourcesStage}-PhonesTableArn
+
+functions:
+  # Defines an HTTP API endpoint that calls the main function in create.js
+  # - path: url path is /phones
+  # - method: POST request
+  # - cors: enabled CORS (Cross-Origin Resource Sharing) for browser cross
+  #     domain api call
+  # - authorizer: authenticate using the AWS IAM role
+  create:
+    handler: lambda/create.main
+    events:
+      - http:
+          path: phones
+          method: post
+          cors: true
+          authorizer: aws_iam
+
+  get:
+    # Defines an HTTP API endpoint that calls the main function in get.js
+    # - path: url path is /phones/{id}
+    # - method: GET request
+    handler: lambda/get.main
+    events:
+      - http:
+          path: phones/{id}/{model}
+          method: get
+          cors: true
+          authorizer: aws_iam
+
+  list:
+    # Defines an HTTP API endpoint that calls the main function in list.js
+    # - path: url path is /phones
+    # - method: GET request
+    handler: lambda/list.main
+    events:
+      - http:
+          path: phones
+          method: get
+          cors: true
+          authorizer: aws_iam
+
+  update:
+    # Defines an HTTP API endpoint that calls the main function in update.js
+    # - path: url path is /phones/{id}
+    # - method: PUT request
+    handler: lambda/update.main
+    events:
+      - http:
+          path: phones/{id}
+          method: put
+          cors: true
+          authorizer: aws_iam
+
+  delete:
+    # Defines an HTTP API endpoint that calls the main function in delete.js
+    # - path: url path is /phones/{id}
+    # - method: DELETE request
+    handler: lambda/delete.delete
+    events:
+      - http:
+          path: phones/{id}
+          method: delete
+          cors: true
+          authorizer: aws_iam
+
+resources:
+  # API Gateway Errors
+  - ${file(resources/api-gateway-errors.yml)}
+
+  - Outputs:
+      ApiGatewayRestApiId:
+        Value:
+          Ref: ApiGatewayRestApi
+        Export:
+          Name: ${self:custom.stage}-ApiGatewayRestApiId
+
+      ApiGatewayRestApiRootResourceId:
+        Value:
+          Fn::GetAtt:
+            - ApiGatewayRestApi
+            - RootResourceId
+        Export:
+          Name: ${self:custom.stage}-ApiGatewayRestApiRootResourceId

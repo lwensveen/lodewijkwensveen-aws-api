@@ -1,0 +1,26 @@
+{
+  "name": "lodewijkwensveen-aws-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.666.0",
+    "aws-xray-sdk": "^3.0.0"
+  },
+  "devDependencies": {
+    "serverless-webpack": "^5.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lwensveen/lodewijkwensveen-aws-api.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lwensveen/lodewijkwensveen-aws-api/issues"
+  },
+  "homepage": "https://github.com/lwensveen/lodewijkwensveen-aws-api#readme"
+}
